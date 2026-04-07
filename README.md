@@ -2,24 +2,34 @@
 
 ## Overview
 
-This project demonstrates an end-to-end ETL pipeline built using Prefect.
-It extracts data from a CSV file, transforms it using pandas, and loads it into PostgreSQL with incremental loading support.
+This project demonstrates an end-to-end ETL (Extract, Transform, Load) pipeline built using Prefect.
+It extracts data from a CSV file, transforms it using pandas, and loads it into PostgreSQL with incremental loading support to avoid duplicates.
+
+## Architecture
+
+CSV File → Extract Task → Transform Task → Load Task → PostgreSQL
+↓
+Prefect Flow
+↓
+Prefect Worker + UI Monitoring
 
 ## Tech Stack
 
-Python
-Prefect (Workflow Orchestration)
-PostgreSQL (Database)
-Pandas (Data Processing)
+* Python
+* Prefect (Workflow Orchestration)
+* PostgreSQL (Database)
+* Pandas (Data Processing)
+* psycopg2 (Database Connector)
 
 ## Features
 
-Modular ETL pipeline (Extract, Transform, Load)
-Prefect flow with scheduling and monitoring
-Environment-based configuration using `.env`
-Bulk insert using `execute_batch`
-Incremental loading using `ON CONFLICT DO NOTHING`
-Logging and retries
+* Modular ETL pipeline (Extract, Transform, Load)
+* Workflow orchestration using Prefect
+* Scheduling and monitoring via Prefect UI
+* Bulk insert using `execute_batch`
+* Incremental loading using `ON CONFLICT DO NOTHING`
+* Environment-based configuration using `.env`
+* Logging and retry mechanism
 
 ## Project Structure
 
@@ -27,9 +37,19 @@ Logging and retries
 prefect-csv-db-pipeline/
 │
 ├── flows/
+│   └── csv_to_postgres_flow.py
+│
 ├── tasks/
+│   ├── extract.py
+│   ├── transform.py
+│   └── load.py
+│
 ├── config/
+│   └── config.py
+│
 ├── data/
+│   └── users.csv
+│
 ├── .env
 ├── requirements.txt
 └── README.md
@@ -45,7 +65,7 @@ pip install -r requirements.txt
 
 ### 2. Setup environment variables
 
-Create `.env` file:
+Create a `.env` file:
 
 ```
 DB_HOST=localhost
@@ -88,16 +108,28 @@ prefect deploy
 ### 8. Run from UI
 
 Open: http://127.0.0.1:4200
+Go to Deployments → Click **Run**
 
-## Key Learnings
+## Sample Output
 
-Workflow orchestration using Prefect
-Handling database operations with PostgreSQL
-Building idempotent ETL pipelines
-Debugging real-world pipeline issues
+After running the pipeline:
+
+| name       | email                                       | age | city     |
+| ---------- | ------------------------------------------- | --- | -------- |
+| John Doe   | [john@example.com](mailto:john@example.com) | 28  | New York |
+| Jane Smith | [jane@example.com](mailto:jane@example.com) | 32  | London   |
+
+## What I Learned
+
+* Building end-to-end ETL pipelines
+* Workflow orchestration concepts (server, worker, deployment)
+* Handling duplicate data using database constraints
+* Writing idempotent pipelines
+* Debugging real-world pipeline issues
 
 ## Future Improvements
 
-Add PySpark for large-scale processing
-Integrate cloud storage (AWS/Azure)
-Implement incremental load using timestamps
+* Integrate PySpark for large-scale data processing
+* Implement timestamp-based incremental loading
+* Deploy pipeline to cloud (AWS/Azure)
+* Add data validation checks
