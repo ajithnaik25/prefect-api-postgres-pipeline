@@ -1,18 +1,25 @@
 from prefect import task, get_run_logger
-import pandas as pd
 
 
-@task(name="transform-data", retries=2, retry_delay_seconds=5)
-def transform(df: pd.DataFrame) -> pd.DataFrame:
+@task(name="transform-data")
+def transform(data):
     logger = get_run_logger()
-    logger.info("Trnasforming the data")
 
-    df = df.dropna()
+    logger.info("Starting transformation")
 
-    df["name"] = df["name"].str.title()
-    df["email"] = df["email"].str.lower()
-    df["city"] = df["city"].str.title()
+    try:
+        result = [
+            {
+                "id": user["id"],
+                "name": user["name"],
+                "email": user["email"]
+            }
+            for user in data
+        ]
 
-    logger.info(f"Transformation is complete. Rows after cleaning: {len(df)}")
+        logger.info(f"Transformed {len(result)} records")
+        return result
 
-    return df
+    except Exception as e:
+        logger.error(f"Error in transform: {str(e)}")
+        raise

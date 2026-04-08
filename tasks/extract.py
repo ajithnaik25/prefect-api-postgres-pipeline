@@ -1,14 +1,25 @@
 from prefect import task, get_run_logger
-import pandas as pd
+import requests
+from config.config import API_URL
 
 
-@task(name="extract-data", retries=2, retry_delay_seconds=5)
-def extract(csv_path: str):
+@task(name="extract-data", retries=3, retry_delay_seconds=5)
+def extract():
     logger = get_run_logger()
-    logger.info(f"Reading the file from: {csv_path}")
 
-    df = pd.read_csv(csv_path)
+    logger.info("Starting API call")
 
-    logger.info(f"Data extracted successfully. Rows: {len(df)}")
+    try:
+        response = requests.get(API_URL)
 
-    return df
+        if response.status_code != 200:
+            raise Exception(f"API failed with status {response.status_code}")
+
+        data = response.json()
+        logger.info(f"Fetched {len(data)} records")
+
+        return data
+
+    except Exception as e:
+        logger.error(f"Error in extract: {str(e)}")
+        raise

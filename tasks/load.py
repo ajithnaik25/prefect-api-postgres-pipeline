@@ -1,41 +1,50 @@
 from prefect import task, get_run_logger
 import psycopg2
-from psycopg2.extensions import connection
 from psycopg2.extras import execute_batch
-import pandas as pd
 from config.config import DB_CONFIG
+from config.config import DB_CONFIG, DB_TABLE
 
 
-@task(name="load-data", retries=2, retry_delay_seconds=5)
-def load(df: pd.DataFrame):
+@task(name="load-data", retries=3, retry_delay_seconds=5)
+def load(data: list):
     logger = get_run_logger()
+
+    if not data:
+        logger.warning("No data to insert")
+        return
+
     logger.info("Connecting to database")
 
-    conn: connection = psycopg2.connect(**DB_CONFIG)
+    conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
 
-    logger.info("Preparing bulk data")
-
-    data = df[["name", "email", "age", "city"]].values.tolist()
-
-    logger.info("Inserting data into table")
-
     try:
-        execute_batch(cursor, """
-                    INSERT INTO users(name,email,age,city)
-                    VALUES(%s,%s,%s,%s)
-                    ON CONFLICT (email) DO NOTHING  
-                    """, data)
+        logger.info("Preparing data for insert")
+
+        # Convert list of dict → list of tuples
+        records = [
+            (item["id"], item["name"], item["email"])
+            for item in data
+        ]
+
+        logger.info(f"Inserting {len(records)} records")
+
+        query = f"""
+            INSERT INTO {DB_TABLE} (id, name, email)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (id) DO NOTHING
+        """
+
+        execute_batch(cursor, query, records)
 
         conn.commit()
+        logger.info("Data inserted successfully")
 
     except Exception as e:
         conn.rollback()
-        logger.error(f"Error inserting data: {e}")
+        logger.error(f"Error in load: {str(e)}")
         raise
 
     finally:
         cursor.close()
         conn.close()
-
-    logger.info("Data Inserted Successfully")
