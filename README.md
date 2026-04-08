@@ -1,13 +1,14 @@
-# CSV to PostgreSQL ETL Pipeline using Prefect
+# API to PostgreSQL ETL Pipeline using Prefect
 
 ## Overview
 
-This project demonstrates an end-to-end ETL (Extract, Transform, Load) pipeline built using Prefect.
-It extracts data from a CSV file, transforms it using pandas, and loads it into PostgreSQL with incremental loading support to avoid duplicates.
+This project demonstrates an end-to-end ETL (Extract, Transform, Load) pipeline that fetches data from a public API, transforms it, and loads it into PostgreSQL.
+
+The pipeline is orchestrated using Prefect with support for retries, logging, and monitoring through the Prefect UI.
 
 ## Architecture
 
-CSV File → Extract Task → Transform Task → Load Task → PostgreSQL
+API → Extract Task → Transform Task → Load Task → PostgreSQL
 ↓
 Prefect Flow
 ↓
@@ -18,26 +19,26 @@ Prefect Worker + UI Monitoring
 * Python
 * Prefect (Workflow Orchestration)
 * PostgreSQL (Database)
-* Pandas (Data Processing)
+* Requests (API calls)
 * psycopg2 (Database Connector)
 
 ## Features
 
-* Modular ETL pipeline (Extract, Transform, Load)
+* API-based data ingestion
+* Modular ETL design (Extract, Transform, Load)
 * Workflow orchestration using Prefect
-* Scheduling and monitoring via Prefect UI
+* Retry mechanism for API failures
 * Bulk insert using `execute_batch`
 * Incremental loading using `ON CONFLICT DO NOTHING`
 * Environment-based configuration using `.env`
-* Logging and retry mechanism
+* Logging and error handling
 
 ## Project Structure
 
-```
-prefect-csv-db-pipeline/
+prefect-api-db-pipeline/
 │
 ├── flows/
-│   └── csv_to_postgres_flow.py
+│   └── api_to_postgres_flow.py
 │
 ├── tasks/
 │   ├── extract.py
@@ -47,12 +48,15 @@ prefect-csv-db-pipeline/
 ├── config/
 │   └── config.py
 │
-├── data/
-│   └── users.csv
-│
 ├── .env
 ├── requirements.txt
 └── README.md
+```
+
+## API Source
+
+```
+https://jsonplaceholder.typicode.com/users
 ```
 
 ## How to Run
@@ -67,69 +71,84 @@ pip install -r requirements.txt
 
 Create a `.env` file:
 
-```
+API_URL=https://jsonplaceholder.typicode.com/users
+
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=etl_db
 DB_USER=postgres
 DB_PASSWORD=your_password
+
+DB_TABLE=users
 ```
 
-### 3. Start Prefect server
+### 3. Create Database and Table
+
+```
+CREATE TABLE users (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(150) UNIQUE
+);
+```
+
+### 4. Start Prefect server
 
 ```
 prefect server start
 ```
 
-### 4. Set API URL (PowerShell)
+### 5. Set API URL (PowerShell)
 
 ```
 $env:PREFECT_API_URL="http://127.0.0.1:4200/api"
 ```
 
-### 5. Create work pool
+### 6. Create work pool
 
 ```
 prefect work-pool create default-pool -t process
 ```
 
-### 6. Start worker
+### 7. Start worker
 
 ```
 prefect worker start --pool default-pool
 ```
 
-### 7. Deploy flow
+### 8. Deploy flow
 
 ```
 prefect deploy
 ```
 
-### 8. Run from UI
+### 9. Run from UI
 
 Open: http://127.0.0.1:4200
 Go to Deployments → Click **Run**
 
 ## Sample Output
 
-After running the pipeline:
+After execution:
 
-| name       | email                                       | age | city     |
-| ---------- | ------------------------------------------- | --- | -------- |
-| John Doe   | [john@example.com](mailto:john@example.com) | 28  | New York |
-| Jane Smith | [jane@example.com](mailto:jane@example.com) | 32  | London   |
+| id | name          | email                                           |
+| -- | ------------- | ----------------------------------------------- |
+| 1  | Leanne Graham | [leanne@example.com](mailto:leanne@example.com) |
+| 2  | Ervin Howell  | [ervin@example.com](mailto:ervin@example.com)   |
 
 ## What I Learned
 
-* Building end-to-end ETL pipelines
-* Workflow orchestration concepts (server, worker, deployment)
-* Handling duplicate data using database constraints
-* Writing idempotent pipelines
-* Debugging real-world pipeline issues
+* Building API-based data ingestion pipelines
+* Handling external API failures with retries
+* Transforming JSON data into structured format
+* Bulk loading data into PostgreSQL
+* Implementing incremental loading for idempotent pipelines
+* Orchestrating workflows using Prefect
 
 ## Future Improvements
 
-* Integrate PySpark for large-scale data processing
-* Implement timestamp-based incremental loading
+* Handle API pagination (large datasets)
+* Implement rate limit handling
+* Add timestamp-based incremental loading
+* Integrate PySpark for large-scale processing
 * Deploy pipeline to cloud (AWS/Azure)
-* Add data validation checks
