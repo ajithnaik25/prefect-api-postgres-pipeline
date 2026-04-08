@@ -3,6 +3,7 @@ import os
 
 load_dotenv()
 
+API_URL = os.getenv("API_URL")
 DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
     "port": os.getenv("DB_PORT"),
@@ -10,3 +11,4 @@ DB_CONFIG = {
     "user": os.getenv("DB_USER"),
     "password": os.getenv("DB_PASSWORD"),
 }
+DB_TABLE = os.getenv("DB_TABLE")
